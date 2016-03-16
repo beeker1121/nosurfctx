@@ -2,14 +2,15 @@
 
 `nosurfctx` is an HTTP package for Go
 that helps you prevent Cross-Site Request Forgery attacks when
-using the httprouter multiplexer from Julien Schmidt.
+using the `httprouter` multiplexer from Julien Schmidt.
 
-Large portions of this code (almost 100%) is from the awesome
+Large portions of this code (almost 100%) are from the awesome
 `nosurf` package created by Justinas Stankevičius. I would like to
-thank both Julien and Justinas for their amazing work, and all
-credit is due to them. Links to each project are below:
+thank both **Julien and Justinas for their amazing work** - all
+credit goes to them. You can find each project here on Github:
 
 nosurf: [https://github.com/justinas/nosurf](https://github.com/justinas/nosurf)
+
 httprouter: [https://github.com/julienschmidt/httprouter](https://github.com/julienschmidt/httprouter)
 
 ### Why?
@@ -26,7 +27,7 @@ on every non-safe (non-GET/HEAD/OPTIONS/TRACE) method.
 
 * Supports any `httprouter.Handle` with a `context.Context` parameter.
 * `context.Context` object used to pass CSRF token between handlers
-instead of a global map and mutex lock.
+instead of a global map with mutex locks.
 * Uses masked tokens to mitigate the BREACH attack.
 * Has no dependencies outside the Go standard library.
 
