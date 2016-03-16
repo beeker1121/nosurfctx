@@ -7,7 +7,7 @@ using the `httprouter` multiplexer from Julien Schmidt.
 Large portions of this code (almost 100%) are from the awesome
 `nosurf` package created by Justinas Stankevičius. I would like to
 thank both **Julien and Justinas for their amazing work** - all
-credit goes to them. You can find each project here on Github:
+credit goes to them. You can find their projects here on Github:
 
 nosurf: [https://github.com/justinas/nosurf](https://github.com/justinas/nosurf)
 
@@ -29,7 +29,8 @@ on every non-safe (non-GET/HEAD/OPTIONS/TRACE) method.
 * `context.Context` object used to pass CSRF token between handlers
 instead of a global map with mutex locks.
 * Uses masked tokens to mitigate the BREACH attack.
-* Has no dependencies outside the Go standard library.
+* Has no dependencies outside the Go standard library, `httprouter`,
+and `net/context`.
 
 ### Example
 ```go
