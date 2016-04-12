@@ -13,6 +13,7 @@
 package nosurfctx
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"golang.org/x/net/context"
@@ -45,14 +46,14 @@ func Token(ctx context.Context) string {
 }
 
 // Generate a new token consisting of random bytes.
-func generateToken() []byte {
+func generateToken() ([]byte, error) {
 	bytes := make([]byte, tokenLength)
 
 	if _, err := io.ReadFull(rand.Reader, bytes); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Could not generate random bytes for token: %s", err)
 	}
 
-	return bytes
+	return bytes, nil
 }
 
 // Get the token from the CSRF cookie
@@ -106,26 +107,35 @@ func setTokenCookie(w http.ResponseWriter, token []byte) {
 // Set the given token to the given context.
 // The value stored in context will be the masked and base64 encoded
 // token for use in forms and ajax.
-func setTokenContext(ctx context.Context, token []byte) context.Context {
-	return context.WithValue(ctx, csrfKey, b64encode(maskToken(token)))
+func setTokenContext(ctx context.Context, token []byte) (context.Context, error) {
+	// Mask the token
+	maskedToken, err := maskToken(token)
+	if err != nil {
+		return ctx, err
+	}
+
+	return context.WithValue(ctx, csrfKey, b64encode(maskedToken)), nil
 }
 
 // Verify the sent token matches the real token.
 // realToken should be a base64 decoded 32 byte slice.
 // sentToken should be a base64 decoded 64 byte slice.
-func verifyToken(realToken, sentToken []byte) bool {
+func verifyToken(realToken, sentToken []byte) (bool, error) {
 	realN := len(realToken)
 	sentN := len(sentToken)
 
 	if realN != tokenLength || sentN != tokenLength*2 {
-		return false
+		return false, fmt.Errorf("Sent token length does not match real token length")
 	}
 
 	// Unmask the sent token.
-	sentPlain := unmaskToken(sentToken)
+	sentPlain, err := unmaskToken(sentToken)
+	if err != nil {
+		return false, err
+	}
 
 	// Compare the real token to the sent token using
 	// a constant time compare function to prevent
 	// info leakage.
-	return subtle.ConstantTimeCompare(realToken, sentPlain) == 1
+	return subtle.ConstantTimeCompare(realToken, sentPlain) == 1, nil
 }

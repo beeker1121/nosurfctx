@@ -1,6 +1,7 @@
 package nosurfctx
 
 import (
+	"fmt"
 	"crypto/rand"
 	"encoding/base64"
 	"io"
@@ -22,22 +23,24 @@ func b64decode(data string) []byte {
 }
 
 // Perform a One-Time Pad on data with the given key
-func oneTimePad(data, key []byte) {
+func oneTimePad(data, key []byte) error {
 	n := len(data)
 	if n != len(key) {
-		panic("Lengths of slices are not equal")
+		return fmt.Errorf("Could not OTP due to length mismatch")
 	}
 
 	for i := 0; i < n; i++ {
 		data[i] ^= key[i]
 	}
+
+	return nil
 }
 
 // Mask the token to make sure it's unique for each
 // request, thereby mitigating the BREACH attack.
-func maskToken(data []byte) []byte {
+func maskToken(data []byte) ([]byte, error) {
 	if len(data) != tokenLength {
-		return nil
+		return nil, fmt.Errorf("Data length does not match token length")
 	}
 
 	// tokenLength*2 == len(enckey + token)
@@ -48,24 +51,29 @@ func maskToken(data []byte) []byte {
 
 	// Generate a random key for this token
 	if _, err := io.ReadFull(rand.Reader, key); err != nil {
-		panic(err)
+		return nil, fmt.Errorf("Could not generate random key for token: %s", err)
 	}
 
 	// OTP it
-	oneTimePad(token, key)
+	if err := oneTimePad(token, key); err != nil {
+		return nil, fmt.Errorf("Could not OTP token: %s", err)
+	}
 
-	return result
+	return result, nil
 }
 
 // Unmask the token
-func unmaskToken(data []byte) []byte {
+func unmaskToken(data []byte) ([]byte, error) {
 	if len(data) != tokenLength*2 {
-		return nil
+		return nil, fmt.Errorf("Data does not match the token length * 2")
 	}
 
 	key := data[:tokenLength]
 	token := data[tokenLength:]
-	oneTimePad(token, key)
 
-	return token
+	if err := oneTimePad(token, key); err != nil {
+		return nil, fmt.Errorf("Could not OTP token: %s", err)
+	}
+
+	return token, nil
 }
