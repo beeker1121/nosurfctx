@@ -13,39 +13,39 @@
 package nosurfctx
 
 import (
-	"fmt"
-	"io"
-	"net/http"
-	"golang.org/x/net/context"
 	"crypto/rand"
 	"crypto/subtle"
+	"fmt"
+	"golang.org/x/net/context"
+	"io"
+	"net/http"
 )
 
 const (
-	// The name of the CSRF cookie
-	cookieName    = "csrf_token"
-	// The name of the form field
+	// cookieName is the name of the CSRF cookie.
+	cookieName = "csrf_token"
+	// formFieldName is the name of the form field.
 	formFieldName = "csrf_token"
-	// The name of the CSRF header
-	headerName    = "X-CSRF-Token"
-	// The token length
-	tokenLength   = 32
-	// Max-age in seconds for the CSRF cookie. 365 days.
-	maxAge        = 365 * 24 * 60 * 60
+	// headerName is the name of the CSRF header.
+	headerName = "X-CSRF-Token"
+	// tokenLength is the token length.
+	tokenLength = 32
+	// maxAge is the max-age in seconds for the CSRF cookie, 365 days.
+	maxAge = 365 * 24 * 60 * 60
 )
 
-// Unexported key type to prevent context collision with other packages.
+// key is the key type used by this package for context.
 type key int
 
-// Our unexported key for storing and retrieving the token from context.
+// csrfKey is the key for storing and retrieving the token from context.
 var csrfKey key = 1
 
-// Get the token from the given context.
+// Token gets the token from the given context.
 func Token(ctx context.Context) string {
 	return ctx.Value(csrfKey).(string)
 }
 
-// Generate a new token consisting of random bytes.
+// generateToken generates a new token consisting of random bytes.
 func generateToken() ([]byte, error) {
 	bytes := make([]byte, tokenLength)
 
@@ -56,7 +56,7 @@ func generateToken() ([]byte, error) {
 	return bytes, nil
 }
 
-// Get the token from the CSRF cookie
+// getTokenFromCookie gets the token from the CSRF cookie.
 func getTokenFromCookie(r *http.Request) []byte {
 	var token []byte
 
@@ -68,13 +68,14 @@ func getTokenFromCookie(r *http.Request) []byte {
 	return token
 }
 
+// getTokenFromRequest gets the token from the request.
 func getTokenFromRequest(r *http.Request) []byte {
 	var token string
 
-	// Prefer the header over form value
+	// Prefer the header over form value.
 	token = r.Header.Get(headerName)
 
-	// Then POST values
+	// Then POST values.
 	if len(token) == 0 {
 		token = r.PostFormValue(formFieldName)
 	}
@@ -91,7 +92,7 @@ func getTokenFromRequest(r *http.Request) []byte {
 	return b64decode(token)
 }
 
-// Set the CSRF cookie containing the given token.
+// setTokenCookie sets the CSRF cookie containing the given token.
 func setTokenCookie(w http.ResponseWriter, token []byte) {
 	// Create a new http.Cookie with the base64 encoded masked token.
 	cookie := http.Cookie{}
@@ -104,7 +105,7 @@ func setTokenCookie(w http.ResponseWriter, token []byte) {
 	http.SetCookie(w, &cookie)
 }
 
-// Set the given token to the given context.
+// setTokenContext sets the given token to the given context.
 // The value stored in context will be the masked and base64 encoded
 // token for use in forms and ajax.
 func setTokenContext(ctx context.Context, token []byte) (context.Context, error) {
@@ -117,7 +118,7 @@ func setTokenContext(ctx context.Context, token []byte) (context.Context, error)
 	return context.WithValue(ctx, csrfKey, b64encode(maskedToken)), nil
 }
 
-// Verify the sent token matches the real token.
+// verifyToken verifies the sent token matches the real token.
 // realToken should be a base64 decoded 32 byte slice.
 // sentToken should be a base64 decoded 64 byte slice.
 func verifyToken(realToken, sentToken []byte) (bool, error) {
@@ -134,8 +135,7 @@ func verifyToken(realToken, sentToken []byte) (bool, error) {
 		return false, err
 	}
 
-	// Compare the real token to the sent token using
-	// a constant time compare function to prevent
-	// info leakage.
+	// Compare the real token to the sent token using a constant
+	// time compare function to prevent info from leaking.
 	return subtle.ConstantTimeCompare(realToken, sentPlain) == 1, nil
 }

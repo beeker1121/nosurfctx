@@ -1,21 +1,21 @@
 package nosurfctx
 
 import (
+	"github.com/julienschmidt/httprouter"
+	"golang.org/x/net/context"
 	"net/http"
 	"net/url"
-	"golang.org/x/net/context"
-	"github.com/julienschmidt/httprouter"
 )
 
 // Define our Handler type matching httprouter.Handle
 // but with a context.Context parameter.
 type csrfHandler func(context.Context, http.ResponseWriter, *http.Request, httprouter.Params)
 
-// Methods which we only issue the CSRF token for and do
-// not check for verification.
+// exemptMethods defines HTTP methods for which we only issue the CSRF token
+// for, and do not try verifying.
 var exemptMethods = []string{"GET", "HEAD", "OPTIONS", "TRACE"}
 
-// Our default error handler.
+// defaultErrorHandler is the default error handler.
 func defaultErrorHandler(w http.ResponseWriter, r *http.Request) {
 	http.Error(w, "Bad Request", http.StatusBadRequest)
 }
@@ -33,7 +33,7 @@ func Begin(h csrfHandler) httprouter.Handle {
 	}
 }
 
-// For routes that handle both GET and POST requests.
+// Protect is the middleware used for protecting routes from CSRF attacks.
 func Protect(h csrfHandler) csrfHandler {
 	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		// Set Vary header to prevent cookie caching in some browsers.
