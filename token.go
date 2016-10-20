@@ -81,7 +81,7 @@ func getTokenFromRequest(r *http.Request) []byte {
 	}
 
 	// If all else fails, try a multipart value.
-	// PostFormValue() will have already called ParseMultipartForm()
+	// PostFormValue() will have already called ParseMultipartForm().
 	if len(token) == 0 && r.MultipartForm != nil {
 		vals := r.MultipartForm.Value[formFieldName]
 		if len(vals) != 0 {
