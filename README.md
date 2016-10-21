@@ -40,8 +40,7 @@ import (
 	"fmt"
 	"html/template"
 	"net/http"
-	"golang.org/x/net/context"
-	"github.com/julienschmidt/httprouter"
+
 	"github.com/beeker1121/nosurfctx"
 )
 
@@ -65,9 +64,9 @@ var templateString string = `
 `
 var templ = template.Must(template.New("t1").Parse(templateString))
 
-func myFunc(ctx context.Context, w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+func myFunc(w http.ResponseWriter, r *http.Request) {
 	data := make(map[string]string)
-	data["token"] = nosurfctx.Token(ctx)
+	data["token"] = nosurfctx.Token(r)
 
 	if r.Method == "POST" {
 		data["name"] = r.FormValue("name")

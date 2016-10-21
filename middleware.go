@@ -1,15 +1,9 @@
 package nosurfctx
 
 import (
-	"github.com/julienschmidt/httprouter"
-	"golang.org/x/net/context"
 	"net/http"
 	"net/url"
 )
-
-// Define our Handler type matching httprouter.Handle
-// but with a context.Context parameter.
-type csrfHandler func(context.Context, http.ResponseWriter, *http.Request, httprouter.Params)
 
 // exemptMethods defines HTTP methods for which we only issue the CSRF token
 // for, and do not try verifying.
@@ -23,19 +17,9 @@ func defaultErrorHandler(w http.ResponseWriter, r *http.Request) {
 // Export the public error handler so it can be modified.
 var DefaultErrorHandler = defaultErrorHandler
 
-// Begin takes in a csrfHandler function type and returns
-// an httprouter.Handle type for use as the first handler
-// in the middleware chain.
-func Begin(h csrfHandler) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-		ctx := context.Background()
-		h(ctx, w, r, ps)
-	}
-}
-
 // Protect is the middleware used for protecting routes from CSRF attacks.
-func Protect(h csrfHandler) csrfHandler {
-	return func(ctx context.Context, w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func Protect(h http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 		// Set Vary header to prevent cookie caching in some browsers.
 		w.Header().Add("Vary", "Cookie")
 
@@ -58,15 +42,15 @@ func Protect(h csrfHandler) csrfHandler {
 
 			setTokenCookie(w, token)
 
-			ctx, err = setTokenContext(ctx, token)
+			r, err = setTokenContext(r, token)
 			if err != nil {
 				DefaultErrorHandler(w, r)
 				return
 			}
 		} else {
-			// Create err variable to prevent overwrite of ctx.
+			// Create err variable to prevent overwrite of r.
 			var err error
-			ctx, err = setTokenContext(ctx, realToken)
+			r, err = setTokenContext(r, realToken)
 			if err != nil {
 				DefaultErrorHandler(w, r)
 				return
@@ -76,7 +60,7 @@ func Protect(h csrfHandler) csrfHandler {
 		// Skip to the success handler if the request method is
 		// exempt from CSRF verification.
 		if stringInSlice(r.Method, exemptMethods) {
-			h(ctx, w, r, ps)
+			h(w, r)
 			return
 		}
 
@@ -116,6 +100,6 @@ func Protect(h csrfHandler) csrfHandler {
 		}
 
 		// Everything passed, call success handler.
-		h(ctx, w, r, ps)
+		h(w, r)
 	}
 }

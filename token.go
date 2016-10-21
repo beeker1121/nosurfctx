@@ -13,10 +13,10 @@
 package nosurfctx
 
 import (
+	"context"
 	"crypto/rand"
 	"crypto/subtle"
 	"fmt"
-	"golang.org/x/net/context"
 	"io"
 	"net/http"
 )
@@ -40,9 +40,9 @@ type key int
 // csrfKey is the key for storing and retrieving the token from context.
 var csrfKey key = 1
 
-// Token gets the token from the given context.
-func Token(ctx context.Context) string {
-	return ctx.Value(csrfKey).(string)
+// Token gets the token from the given request's context.
+func Token(r *http.Request) string {
+	return r.Context().Value(csrfKey).(string)
 }
 
 // generateToken generates a new token consisting of random bytes.
@@ -105,17 +105,17 @@ func setTokenCookie(w http.ResponseWriter, token []byte) {
 	http.SetCookie(w, &cookie)
 }
 
-// setTokenContext sets the given token to the given context.
+// setTokenContext sets the given token to the given request's Context.
 // The value stored in context will be the masked and base64 encoded
 // token for use in forms and ajax.
-func setTokenContext(ctx context.Context, token []byte) (context.Context, error) {
-	// Mask the token
+func setTokenContext(r *http.Request, token []byte) (*http.Request, error) {
+	// Mask the token.
 	maskedToken, err := maskToken(token)
 	if err != nil {
-		return ctx, err
+		return r, err
 	}
 
-	return context.WithValue(ctx, csrfKey, b64encode(maskedToken)), nil
+	return r.WithContext(context.WithValue(r.Context(), csrfKey, b64encode(maskedToken))), nil
 }
 
 // verifyToken verifies the sent token matches the real token.
