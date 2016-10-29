@@ -17,8 +17,22 @@ func defaultErrorHandler(w http.ResponseWriter, r *http.Request) {
 // Export the public error handler so it can be modified.
 var DefaultErrorHandler = defaultErrorHandler
 
-// Protect is the middleware used for protecting routes from CSRF attacks.
+// Protect is the standard middleware used for protecting routes from CSRF
+// attacks, taking into account the exempt HTTP methods.
 func Protect(h http.HandlerFunc) http.HandlerFunc {
+	return protect(h, true)
+}
+
+// ForceProtect is middleware used for potecting routes from CSRF attacks,
+// disregarding the exempt HTTP methods.
+//
+// This, for instance, can be used to protect GET requests sent via AJAX.
+func ForceProtect(h http.HandlerFunc) http.HandlerFunc {
+	return protect(h, false)
+}
+
+// protect is the middleware used for protecting routes from CSRF attacks.
+func protect(h http.HandlerFunc, checkExempt bool) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Set Vary header to prevent cookie caching in some browsers.
 		w.Header().Add("Vary", "Cookie")
@@ -59,7 +73,7 @@ func Protect(h http.HandlerFunc) http.HandlerFunc {
 
 		// Skip to the success handler if the request method is
 		// exempt from CSRF verification.
-		if stringInSlice(r.Method, exemptMethods) {
+		if checkExempt && stringInSlice(r.Method, exemptMethods) {
 			h(w, r)
 			return
 		}
@@ -99,7 +113,7 @@ func Protect(h http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		// Everything passed, call success handler.
+		// Everything passed, call the next handler.
 		h(w, r)
 	}
 }

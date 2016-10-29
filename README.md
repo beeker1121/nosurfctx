@@ -42,6 +42,7 @@ import (
 	"net/http"
 
 	"github.com/beeker1121/nosurfctx"
+	"github.com/bouk/httprouter"
 )
 
 var templateString string = `
@@ -78,8 +79,8 @@ func myFunc(w http.ResponseWriter, r *http.Request) {
 func main() {
 	router := httprouter.New()
 
-	router.GET("/", nosurfctx.Begin(nosurfctx.Protect(myFunc)))
-	router.POST("/", nosurfctx.Begin(nosurfctx.Protect(myFunc)))
+	router.GET("/", nosurfctx.Protect(myFunc))
+	router.POST("/", nosurfctx.Protect(myFunc))
 
 	fmt.Println("Listening on http://127.0.0.1:8000/")
 	http.ListenAndServe(":8000", router)
