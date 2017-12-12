@@ -1,6 +1,7 @@
 package nosurfctx
 
 import (
+	"context"
 	"net/http"
 	"net/url"
 )
@@ -21,6 +22,14 @@ var DefaultErrorHandler = defaultErrorHandler
 // attacks, taking into account the exempt HTTP methods.
 func Protect(h http.HandlerFunc) http.HandlerFunc {
 	return protect(h, true)
+}
+
+// Add middleware to bypass CSRF protection for testing purpose
+func NoProtect(h http.HandlerFunc) http.HandlerFunc {
+  return func(w http.ResponseWriter, r *http.Request) {
+    r = r.WithContext(context.WithValue(r.Context(), csrfKey, "DUMMY"))
+    h(w, r)
+  }
 }
 
 // ForceProtect is middleware used for potecting routes from CSRF attacks,
